@@ -11,4 +11,10 @@ RUN apt-get update \
     && apt-get purge -y --auto-remove curl gnupg lsb-release \
     && rm -rf /var/lib/apt/lists/*
 
+COPY docker-socket-entrypoint.sh /usr/local/bin/docker-socket-entrypoint
 COPY public/ /var/www/html/
+
+RUN chmod +x /usr/local/bin/docker-socket-entrypoint
+
+ENTRYPOINT ["docker-socket-entrypoint"]
+CMD ["apache2-foreground"]

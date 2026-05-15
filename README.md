@@ -51,6 +51,17 @@ ghcr.io/owner/image:tag
 docker pull localhost:5000/ghcr.io/owner/image:tag
 ```
 
+
+## Docker socket 权限
+
+Web 容器中的 PHP 进程默认以 `www-data` 用户运行。为了避免执行 Docker CLI 时出现 `permission denied while trying to connect to the docker API at unix:///var/run/docker.sock`，镜像启动脚本会自动读取挂载进容器的 Docker socket 所属 GID，并把 `www-data` 加入对应的容器内用户组。
+
+如果你仍然遇到权限问题，请确认：
+
+- `docker-compose.yml` 中已经挂载 `/var/run/docker.sock:/var/run/docker.sock`。
+- 修改 Dockerfile 后已经重新构建 Web 镜像：`docker compose up -d --build`。
+- 宿主机的 Docker socket 允许其所属用户组访问。
+
 ## 配置
 
 可在 `docker-compose.yml` 中通过环境变量调整：
