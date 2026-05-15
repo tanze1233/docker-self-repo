@@ -7,6 +7,27 @@ function env_string(string $name, string $default): string
     return $value === false || trim($value) === '' ? $default : trim($value);
 }
 
+function is_loopback_registry_host(string $host): bool
+{
+    $host = strtolower(trim($host));
+    return $host === 'localhost'
+        || str_starts_with($host, 'localhost:')
+        || $host === '127.0.0.1'
+        || str_starts_with($host, '127.0.0.1:')
+        || $host === '::1'
+        || str_starts_with($host, '::1:')
+        || str_starts_with($host, '[::1]');
+}
+
+function registry_host_for_copy(string $host): string
+{
+    if (is_loopback_registry_host($host) && file_exists('/.dockerenv')) {
+        return env_string('CONTAINER_REGISTRY_HOST', 'registry:5000');
+    }
+
+    return $host;
+}
+
 function tag_part(string $reference): string
 {
     $slash = strrpos($reference, '/');
@@ -135,7 +156,8 @@ function run_command(array $command, int $timeout): array
 
 function import_image(string $input): array
 {
-    $registryHost = env_string('REGISTRY_HOST', 'registry:5000');
+    $configuredRegistryHost = env_string('REGISTRY_HOST', 'registry:5000');
+    $registryHost = registry_host_for_copy($configuredRegistryHost);
     $publicRegistryHost = env_string('PUBLIC_REGISTRY_HOST', 'localhost:5000');
     $timeout = (int) env_string('IMPORT_TIMEOUT', (string) DEFAULT_TIMEOUT);
     $timeout = $timeout > 0 ? $timeout : DEFAULT_TIMEOUT;

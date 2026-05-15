@@ -56,8 +56,9 @@ docker pull localhost:5000/ghcr.io/owner/image:tag
 
 可在 `docker-compose.yml` 中通过环境变量调整：
 
-- `REGISTRY_HOST`：Web 容器内部访问 Registry 的地址，默认 `registry:5000`。
-- `PUBLIC_REGISTRY_HOST`：页面展示给用户的 Registry 地址，默认 `localhost:5000`。
+- `REGISTRY_HOST`：Web 容器内部访问 Registry 的地址，默认 `registry:5000`。不要在容器内配置为 `localhost:5000`，否则会指向 Web 容器自身。
+- `CONTAINER_REGISTRY_HOST`：当 `REGISTRY_HOST` 被误配置成 `localhost`、`127.0.0.1` 或 `::1` 且程序运行在容器内时，实际用于 `skopeo copy` 的兜底地址，默认 `registry:5000`。
+- `PUBLIC_REGISTRY_HOST`：页面展示给用户的 Registry 地址，默认 `localhost:5000`，这是给浏览器和宿主机 Docker 客户端使用的地址。
 - `IMPORT_TIMEOUT`：镜像复制命令的超时时间（秒），默认 `900`。
 - `DEST_TLS_VERIFY`：连接本地 Registry 时是否校验证书，默认 `false`，适用于 Compose 中的 HTTP Registry。
 
@@ -66,5 +67,6 @@ docker pull localhost:5000/ghcr.io/owner/image:tag
 - 当前页面只允许导入 Docker Hub 与 `ghcr.io` 镜像。
 - 如果要让其他机器访问你的 Registry，请把 `PUBLIC_REGISTRY_HOST` 改成服务器 IP 或域名，并确保 5000 端口可达。
 - 默认 Registry 使用 HTTP；远程 Docker 客户端可能需要在 Docker daemon 中配置 insecure registry。
+- 如果导入日志中出现 `pinging container registry localhost:5000` 和 `connect: connection refused`，说明容器内复制目标被配置成了 loopback 地址；请使用 Compose 默认的 `REGISTRY_HOST=registry:5000`，或设置 `CONTAINER_REGISTRY_HOST=registry:5000`。
 - 使用 `skopeo copy --all` 可以避免 Docker CLI 只推送当前机器单平台镜像时出现的 `Not all multiplatform-content is present` 提示。
 - Web 页面可以把外部镜像写入你的本地 Registry，请只在可信网络中使用，必要时自行添加认证。
