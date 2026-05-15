@@ -1,0 +1,27 @@
+services:
+  registry:
+    image: registry:2
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY: /var/lib/registry
+    volumes:
+      - registry-data:/var/lib/registry
+
+  web:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    environment:
+      REGISTRY_HOST: registry:5000
+      CONTAINER_REGISTRY_HOST: registry:5000
+      PUBLIC_REGISTRY_HOST: localhost:5000
+      IMPORT_TIMEOUT: 900
+      DEST_TLS_VERIFY: "false"
+    depends_on:
+      - registry
+
+volumes:
+  registry-data:
