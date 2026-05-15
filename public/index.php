@@ -46,8 +46,10 @@ function parse_image(string $input): array
         throw new InvalidArgumentException('镜像名称包含不允许的字符。');
     }
 
-    $first = explode('/', $image, 2)[0];
-    $hasRegistry = str_contains($first, '.') || str_contains($first, ':') || $first === 'localhost';
+    $parts = explode('/', $image, 2);
+    $first = $parts[0];
+    $hasSlash = count($parts) > 1;
+    $hasRegistry = $hasSlash && (str_contains($first, '.') || str_contains($first, ':') || $first === 'localhost');
     $registry = $hasRegistry ? strtolower($first) : 'docker.io';
 
     $allowedRegistries = ['docker.io', 'index.docker.io', 'registry-1.docker.io', 'ghcr.io'];
