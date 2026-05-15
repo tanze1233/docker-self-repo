@@ -76,11 +76,11 @@ function parse_image(string $input): array
         throw new InvalidArgumentException('镜像标签格式不正确。');
     }
 
-    $source = $hasRegistry ? $image : $image;
+    $normalizedRegistry = $registry === 'ghcr.io' ? 'ghcr.io' : 'docker.io';
     $prefix = $registry === 'ghcr.io' ? 'ghcr.io' : 'dockerhub';
 
     return [
-        'source' => $source,
+        'source' => $normalizedRegistry . '/' . strtolower($repository) . ':' . $tag,
         'localPath' => $prefix . '/' . strtolower($repository) . ':' . $tag,
     ];
 }
@@ -94,7 +94,7 @@ function run_command(array $command, int $timeout): array
 
     $process = proc_open($command, $descriptorSpec, $pipes);
     if (!is_resource($process)) {
-        return ['code' => 1, 'output' => '无法启动 docker 命令。'];
+        return ['code' => 1, 'output' => '无法启动 skopeo 命令。'];
     }
 
     stream_set_blocking($pipes[1], false);
@@ -139,15 +139,24 @@ function import_image(string $input): array
     $publicRegistryHost = env_string('PUBLIC_REGISTRY_HOST', 'localhost:5000');
     $timeout = (int) env_string('IMPORT_TIMEOUT', (string) DEFAULT_TIMEOUT);
     $timeout = $timeout > 0 ? $timeout : DEFAULT_TIMEOUT;
+    $destTlsVerify = env_string('DEST_TLS_VERIFY', 'false');
 
     $parsed = parse_image($input);
     $target = $registryHost . '/' . $parsed['localPath'];
     $publicTarget = $publicRegistryHost . '/' . $parsed['localPath'];
 
     $steps = [
-        ['title' => '拉取源镜像', 'command' => ['docker', 'pull', $parsed['source']]],
-        ['title' => '标记到本地仓库', 'command' => ['docker', 'tag', $parsed['source'], $target]],
-        ['title' => '推送到本地仓库', 'command' => ['docker', 'push', $target]],
+        [
+            'title' => '复制多架构镜像到本地仓库',
+            'command' => [
+                'skopeo',
+                'copy',
+                '--all',
+                '--dest-tls-verify=' . $destTlsVerify,
+                'docker://' . $parsed['source'],
+                'docker://' . $target,
+            ],
+        ],
     ];
 
     $logs = [];
@@ -157,7 +166,7 @@ function import_image(string $input): array
         if ($result['code'] !== 0) {
             return [
                 'ok' => false,
-                'message' => $step['title'] . '失败，请检查 Docker 权限、网络或镜像名称。',
+                'message' => $step['title'] . '失败，请检查网络、镜像名称或 Registry 连接配置。',
                 'logs' => implode("\n\n", $logs),
                 'target' => $publicTarget,
             ];
@@ -201,7 +210,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <section class="hero">
             <p class="eyebrow">Docker Registry 控制台</p>
             <h1>把 Docker Hub 或 GHCR 镜像同步到你的本地仓库</h1>
-            <p class="lead">提交镜像名称后，后台会执行 pull、tag、push，并给出可直接使用的 docker pull 地址。</p>
+            <p class="lead">提交镜像名称后，后台会用 skopeo copy --all 同步完整多架构镜像，并给出可直接使用的 docker pull 地址。</p>
         </section>
 
         <section class="card">

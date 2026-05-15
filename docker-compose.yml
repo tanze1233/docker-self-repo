@@ -15,11 +15,10 @@ services:
     ports:
       - "8080:80"
     environment:
-      REGISTRY_HOST: localhost:5000
+      REGISTRY_HOST: registry:5000
       PUBLIC_REGISTRY_HOST: localhost:5000
       IMPORT_TIMEOUT: 900
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
+      DEST_TLS_VERIFY: "false"
     depends_on:
       - registry
 
