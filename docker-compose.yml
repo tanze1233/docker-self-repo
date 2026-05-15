@@ -6,20 +6,30 @@ services:
       - "5000:5000"
     environment:
       REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY: /var/lib/registry
+      REGISTRY_HTTP_TLS_CERTIFICATE: /certs/fullchain.pem
+      REGISTRY_HTTP_TLS_KEY: /certs/privkey.pem
     volumes:
       - registry-data:/var/lib/registry
+      - /root/cert/hub.self.com:/certs:ro
+    networks:
+      default:
+        aliases:
+          - hub.self.com
 
   web:
     build: .
     restart: unless-stopped
     ports:
       - "8080:80"
+      - "9443:443"
     environment:
-      REGISTRY_HOST: registry:5000
-      CONTAINER_REGISTRY_HOST: registry:5000
-      PUBLIC_REGISTRY_HOST: localhost:5000
+      REGISTRY_HOST: hub.self.com:5000
+      CONTAINER_REGISTRY_HOST: hub.self.com:5000
+      PUBLIC_REGISTRY_HOST: hub.self.com:5000
       IMPORT_TIMEOUT: 900
-      DEST_TLS_VERIFY: "false"
+      DEST_TLS_VERIFY: "true"
+    volumes:
+      - /root/cert/hub.self.com:/etc/apache2/ssl:ro
     depends_on:
       - registry
 
