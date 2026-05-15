@@ -15,7 +15,7 @@ services:
     ports:
       - "8080:80"
     environment:
-      REGISTRY_HOST: registry:5000
+      REGISTRY_HOST: localhost:5000
       PUBLIC_REGISTRY_HOST: localhost:5000
       IMPORT_TIMEOUT: 900
       DEST_TLS_VERIFY: "false"
